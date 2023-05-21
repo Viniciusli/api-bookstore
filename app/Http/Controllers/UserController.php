@@ -14,9 +14,16 @@ use Throwable;
 
 class UserController extends Controller
 {
-    public function authenticate(Request $request)
+    protected UserService $userService;
+
+    public function __construct(UserService $userService)
     {
-        if (Auth::attempt($request->all())) {
+        $this->userService = $userService;
+    }
+
+    public function authenticate(LoginUserRequest $request)
+    {
+        if (Auth::attempt($request->validated())) {
             return response()->json([
                 'message' => 'logged in',
                 'token' => auth()->user()->createToken(env('APP_NAME'))->plainTextToken,
@@ -28,15 +35,9 @@ class UserController extends Controller
         ], 422);
     }
 
-    public function store(Request $request)
+    public function store(UserRequest $request)
     {
-        if (!(auth()->user() && auth()->user()->hasRole('Super Admin'))) {
-            return response()->json([
-                'message' => 'user don´t have permission'
-            ], 403);
-        }
-        $user = User::create($request->all());
-        $user->assignRole('Super Admin');
+        $this->userService->create($request->validated());
 
         return response()->json([
             'message' => 'user created successfully'
